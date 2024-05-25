@@ -1,9 +1,15 @@
 <script setup>
 import { computed, ref } from 'vue'
-import NavBar from '../components/NavBar.vue'
 import bt from 'bluetooth-terminal'
+
+import NavBar from '../components/NavBar.vue'
+import BaseControl from '../components/BaseControl.vue'
+
+import { useControlStore } from '../stores/control.js'
+
 let terminal = new bt()
 
+const store = useControlStore()
 const deviceName = ref('')
 const log = ref('')
 const logEl = ref(null)
@@ -22,6 +28,18 @@ const writeLog = (data) => {
 
 terminal.receive = (data) => writeLog("< " + data)
 
+const consoleInputEnter = (data) => {
+    // if data not null or undefined then use it instead
+    if (data ===  undefined || data === null || typeof data !== 'string') {
+        data = consoleInput.value
+    }
+    
+    writeLog('> ' + data)
+    terminal.send(data)
+        .catch((e) => { writeLog('err: ' + e) })
+        .finally(() => consoleInput.value = '')
+}
+
 const connectClick = () => {
     navigator.permissions.query({ name: "bluetooth" }).then((m) => {
         alert(m)
@@ -33,19 +51,13 @@ const connectClick = () => {
             deviceName.value = terminal.getDeviceName() ?
                 terminal.getDeviceName() : deviceName.value;
             connState.value = 'connected'
+            store.setSendHandler(consoleInputEnter)
         })
         .catch((e) => {
             connState.value = 'idle'
             alert(e)
             writeLog(e)
         })
-}
-
-const consoleInputEnter = () => {
-    writeLog('> ' + consoleInput.value)
-    terminal.send(consoleInput.value)
-        .catch((e) => { writeLog('err: ' + e) })
-        .finally(() => consoleInput.value = '')
 }
 
 </script>
@@ -57,10 +69,11 @@ const consoleInputEnter = () => {
             <button class="btn btn-sm me-2" @click="connectClick">Connect</button>
             <span v-if="connState == 'connecting'" class="loading loading-dots loading-md"></span>
             <span v-if="connState == 'connected'">Connected to: <b>{{ deviceName }}</b></span>
+            <BaseControl />
         </main>
         <div v-if="showTerminal" class="bg-base-300 w-full px-4 py-0 font-mono border-t border-t-current">
-            <pre ref="logEl" class="text-sm max-h-20 h-20 overflow-y-auto overflow-x-hidden whitespace-pre-wrap">
-                {{ log }}
+            <pre ref="logEl" class="text-sm max-h-80 h-80 overflow-y-auto overflow-x-hidden whitespace-pre-wrap">
+                <code>{{ log }}</code>
             </pre>
             <form class="flex py-2 items-center" @submit.prevent="consoleInputEnter">
                 <span>&gt;&nbsp;</span>

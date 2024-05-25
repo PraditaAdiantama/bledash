@@ -1,5 +1,5 @@
 <script setup>
-defineEmits(['click'])
+
 </script>
 <template>
     <div class="navbar bg-base-300">
@@ -7,7 +7,7 @@ defineEmits(['click'])
             <a class="btn btn-ghost text-xl"><b>BLE</b> Dashboard</a>
         </div>
         <div class="navbar-end">
-            <button class="btn btn-ghost btn-circle" @click="$emit('click')">
+            <button class="btn btn-ghost btn-circle">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                     class="bi bi-terminal" viewBox="0 0 16 16">
                     <path
