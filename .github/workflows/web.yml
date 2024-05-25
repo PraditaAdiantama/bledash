@@ -22,7 +22,7 @@ jobs:
         run: npm ci
 
       - name: Build project
-        run: npm run build
+        run: npm run build -- --base=/bledash
 
       - name: Deploy to GitHub Pages
         if: github.ref == 'refs/heads/main' 
