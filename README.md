@@ -1,35 +1,16 @@
-# web-ble-dashboard
+# Web BLE Dashboard
+Dashboard for Bluetooth Low Energy device through serial communication.
 
-This template should help get you started developing with Vue 3 in Vite.
+### What it does?
+- Adding switch with Off and On command
+- Switches saved in your local storage
+- Per device name switches
+- Console to test command
 
-## Recommended IDE Setup
+Next could be,
+- Add state command
+- Add another control like slider thing
+- Add installable/PWA
 
-[VSCode](https://code.visualstudio.com/) + [Volar](https://marketplace.visualstudio.com/items?itemName=Vue.volar) (and disable Vetur) + [TypeScript Vue Plugin (Volar)](https://marketplace.visualstudio.com/items?itemName=Vue.vscode-typescript-vue-plugin).
 
-## Customize configuration
-
-See [Vite Configuration Reference](https://vitejs.dev/config/).
-
-## Project Setup
-
-```sh
-npm install
-```
-
-### Compile and Hot-Reload for Development
-
-```sh
-npm run dev
-```
-
-### Compile and Minify for Production
-
-```sh
-npm run build
-```
-
-### Lint with [ESLint](https://eslint.org/)
-
-```sh
-npm run lint
-```
+Thanks to this great [**bluetooth terminal api**](https://github.com/loginov-rocks/bluetooth-terminal).
