@@ -30,10 +30,10 @@ terminal.receive = (data) => writeLog("< " + data)
 
 const consoleInputEnter = (data) => {
     // if data not null or undefined then use it instead
-    if (data ===  undefined || data === null || typeof data !== 'string') {
+    if (data === undefined || data === null || typeof data !== 'string') {
         data = consoleInput.value
     }
-    
+
     writeLog('> ' + data)
     terminal.send(data)
         .catch((e) => { writeLog('err: ' + e) })
@@ -51,6 +51,7 @@ const connectClick = () => {
             deviceName.value = terminal.getDeviceName() ?
                 terminal.getDeviceName() : deviceName.value;
             connState.value = 'connected'
+            store.setCurrentDeviceName(deviceName.value)
             store.setSendHandler(consoleInputEnter)
         })
         .catch((e) => {
