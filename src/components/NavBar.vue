@@ -1,5 +1,5 @@
 <script setup>
-
+defineEmits(['terminalToggle'])
 </script>
 <template>
     <div class="navbar bg-base-300">
@@ -7,7 +7,7 @@
             <a class="btn btn-ghost text-xl"><b>BLE</b> Dashboard</a>
         </div>
         <div class="navbar-end">
-            <button class="btn btn-ghost btn-circle">
+            <button @click="$emit('terminalToggle')"class="btn btn-ghost btn-circle">
                 <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor"
                     class="bi bi-terminal" viewBox="0 0 16 16">
                     <path

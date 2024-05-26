@@ -65,7 +65,7 @@ const connectClick = () => {
 
 <template>
     <div class="container max-w-md mx-auto h-full flex flex-col">
-        <NavBar @click="showTerminal = !showTerminal" />
+        <NavBar @terminalToggle="showTerminal = !showTerminal" />
         <main class="my-4 px-2 md:px-0 flex-grow">
             <button class="btn btn-sm me-2" @click="connectClick">Connect</button>
             <span v-if="connState == 'connecting'" class="loading loading-dots loading-md"></span>
