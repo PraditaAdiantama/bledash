@@ -7,7 +7,7 @@ import BaseControl from '../components/BaseControl.vue'
 
 import { useControlStore } from '../stores/control.js'
 
-let terminal = new bt()
+let terminal = new bt('6e400001-b5a3-f393-e0a9-e50e24dcca9e', '6e400003-b5a3-f393-e0a9-e50e24dcca9e')
 
 const store = useControlStore()
 const deviceName = ref('')
