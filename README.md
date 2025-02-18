@@ -11,6 +11,3 @@ Next could be,
 - Add state command
 - Add another control like slider thing
 - Add installable/PWA
-
-
-Thanks to this great [**bluetooth terminal api**](https://github.com/loginov-rocks/bluetooth-terminal).
