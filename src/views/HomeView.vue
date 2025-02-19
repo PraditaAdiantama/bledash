@@ -1,93 +1,177 @@
 <script setup>
-import { computed, ref } from 'vue'
-import bt from 'bluetooth-terminal'
+import { ref } from 'vue'
 
-import NavBar from '../components/NavBar.vue'
-import BaseControl from '../components/BaseControl.vue'
+const logs = ref([])
+const terminalInput = ref('')
+const load = ref(false)
+const server = ref(null)
+const characteristic = ref(null)
 
-import { useControlStore } from '../stores/control.js'
+async function handleSubmit() {
+  const command = terminalInput.value.trim()
+  logs.value.push(`bledash~% ${command}`)
 
-let terminal = new bt('6e400001-b5a3-f393-e0a9-e50e24dcca9e', '6e400003-b5a3-f393-e0a9-e50e24dcca9e')
+  if (command === 'connect') {
+    try {
+      load.value = true
+      const device = await navigator.bluetooth.requestDevice({
+        acceptAllDevices: true,
+        optionalServices: ['6e400001-b5a3-f393-e0a9-e50e24dcca9e']
+      })
 
-const store = useControlStore()
-const deviceName = ref('')
-const log = ref('')
-const logEl = ref(null)
-const consoleInput = ref('')
-const showTerminal = ref('')
+      logs.value.push('Setup connection...')
+      logs.value.push('Connecting...')
 
-const connState = ref('idle')
+      server.value = await device.gatt.connect()
+      logs.value.push('Connected')
 
-const writeLog = (data) => {
-    log.value += "\n" + data
-    window.ampas = logEl.value
-    setTimeout(() => {
-        logEl.value.scrollTop = logEl.value.scrollHeight
-    }, 50)
-}
+      // Automatically fetch the primary service and characteristic
+      const service = await server.value.getPrimaryService('6e400001-b5a3-f393-e0a9-e50e24dcca9e')
+      logs.value.push('Service found')
 
-terminal.receive = (data) => writeLog("< " + data)
+      characteristic.value = await service.getCharacteristic('6e400002-b5a3-f393-e0a9-e50e24dcca9e')
+      logs.value.push('Characteristic found')
 
-const consoleInputEnter = (data) => {
-    // if data not null or undefined then use it instead
-    if (data === undefined || data === null || typeof data !== 'string') {
-        data = consoleInput.value
+      // Send "showconfig" command immediately after connection
+      const encoder = new TextEncoder()
+      await characteristic.value.writeValue(encoder.encode('showconfig\n'))
+      logs.value.push('Sent command: showconfig')
+
+      // Enable notifications on response characteristic (if applicable)
+      const responseCharacteristic = await service.getCharacteristic(
+        '6e400003-b5a3-f393-e0a9-e50e24dcca9e'
+      )
+      await responseCharacteristic.startNotifications()
+
+      responseCharacteristic.addEventListener('characteristicvaluechanged', (ev) => {
+        const value = new TextDecoder().decode(ev.target.value)
+        logs.value.push(`Received: ${value}`)
+        console.log('Received data:', value)
+      })
+    } catch (err) {
+      logs.value.push(`Error: ${err.message || err}`)
+      console.error(err)
+    } finally {
+      load.value = false
     }
+  }
 
-    writeLog('> ' + data)
-    terminal.send(data)
-        .catch((e) => { writeLog('err: ' + e) })
-        .finally(() => consoleInput.value = '')
+  if (terminalInput.value.trim().startsWith('service ')) {
+    try {
+      if (!server.value) throw '❌ Device not connected'
+
+      const params = terminalInput.value.replace('service ', '').split(' ')
+      logs.value.push('🛠️ Setting up service...')
+
+      // Get Service
+      const service = await server.value.getPrimaryService(params[0])
+      logs.value.push('✅ Service found')
+
+      // Get Characteristic for Writing
+      const characteristic = await service.getCharacteristic(params[1])
+      logs.value.push('✍️ Writing characteristic found')
+
+      // Ensure it supports writing
+      if (!characteristic.properties.write) {
+        throw new Error('❌ Characteristic does not support writing!')
+      }
+
+      // Setup Response Notifications
+      const responseCharacteristic = await service.getCharacteristic(
+        '6e400003-b5a3-f393-e0a9-e50e24dcca9e'
+      )
+      logs.value.push('📡 Setting up notifications')
+
+      // Ensure notifications are supported
+      if (
+        !responseCharacteristic.properties.notify &&
+        !responseCharacteristic.properties.indicate
+      ) {
+        throw new Error('❌ Characteristic does not support notifications!')
+      }
+
+      // Enable CCCD Descriptor (Manually Activate Notifications)
+      const cccd = await responseCharacteristic.getDescriptor('2902')
+      await cccd.writeValue(new Uint8Array([0x01, 0x00]))
+      logs.value.push('✅ CCCD descriptor set')
+
+      // Add Listener Before Enabling Notifications
+      responseCharacteristic.addEventListener('characteristicvaluechanged', (ev) => {
+        const value = new TextDecoder().decode(ev.target.value)
+        console.log('📩 Received data:', value)
+        logs.value.push(`📩 Received: ${value}`)
+      })
+
+      // Start Notifications
+      await responseCharacteristic.startNotifications()
+      logs.value.push('✅ Notifications enabled')
+
+      // Send "showconfig" Command
+      const encoder = new TextEncoder()
+      logs.value.push('📤 Sending command: showconfig')
+
+      try {
+        await characteristic.writeValueWithResponse(encoder.encode('showconfig\n'))
+      } catch {
+        await characteristic.writeValue(encoder.encode('showconfig\n'))
+      }
+
+      logs.value.push('✅ Command sent: showconfig')
+    } catch (err) {
+      logs.value.push(`❌ Error: ${err.message || err}`)
+      console.error(err)
+    }
+  }
+
+  if (terminalInput.value.trim() == 'clear') {
+    logs.value = []
+  }
+
+  if (terminalInput.value.trim() == 'showconfig') {
+    // Send "showconfig" command immediately after connection
+    const encoder = new TextEncoder()
+    await characteristic.value.writeValue(encoder.encode('showconfig\n'))
+    logs.value.push('Sent command: showconfig')
+
+    // Enable notifications on response characteristic (if applicable)
+    const responseCharacteristic = await service.getCharacteristic(
+      '6e400003-b5a3-f393-e0a9-e50e24dcca9e'
+    )
+    await responseCharacteristic.startNotifications()
+
+    responseCharacteristic.addEventListener('characteristicvaluechanged', (ev) => {
+      const value = new TextDecoder().decode(ev.target.value)
+      logs.value.push(`Received: ${value}`)
+      console.log('Received data:', value)
+    })
+  }
+
+  terminalInput.value = ''
 }
-
-const connectClick = () => {
-    navigator.permissions.query({ name: "bluetooth" }).then((m) => {
-        alert(m)
-    }).catch(() => { })
-
-    connState.value = 'connecting'
-    terminal.connect()
-        .then((t) => {
-            deviceName.value = terminal.getDeviceName() ?
-                terminal.getDeviceName() : deviceName.value;
-            connState.value = 'connected'
-            store.setCurrentDeviceName(deviceName.value)
-            store.setSendHandler(consoleInputEnter)
-        })
-        .catch((e) => {
-            connState.value = 'idle'
-            alert(e)
-            writeLog(e)
-        })
-}
-
 </script>
 
 <template>
-    <div class="container max-w-md mx-auto h-full flex flex-col">
-        <NavBar @terminalToggle="showTerminal = !showTerminal" />
-        <main class="my-4 px-2 md:px-0 flex-grow">
-            <button class="btn btn-sm me-2" @click="connectClick">Connect</button>
-            <span v-if="connState == 'connecting'" class="loading loading-dots loading-md"></span>
-            <span v-if="connState == 'connected'">Connected to: <b>{{ deviceName }}</b></span>
-            <BaseControl />
-        </main>
-        <div v-if="showTerminal" class="bg-base-300 w-full px-4 py-0 font-mono border-t border-t-current">
-            <pre ref="logEl" class="text-sm max-h-80 h-80 overflow-y-auto overflow-x-hidden whitespace-pre-wrap">
-                <code>{{ log }}</code>
-            </pre>
-            <form class="flex py-2 items-center" @submit.prevent="consoleInputEnter">
-                <span>&gt;&nbsp;</span>
-                <input v-model="consoleInput" class="bg-transparent outline-none border-none p-0 w-full input-sm">
-            </form>
+  <div class="flex items-center min-h-screen w-full bg-cover" style="background-image: url('https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwallpapercave.com%2Fwp%2Fwp6843223.jpg&f=1&nofb=1&ipt=4290309946c1cc0d58357c5684c6a45e0f4d63d66bf9ff9052770913fd4393c4&ipo=images')">
+    <div class="flex flex-col max-w-3xl w-full mx-auto rounded-xl overflow-hidden">
+      <div class="w-full bg-[#39393B] py-2 px-3">
+        <div class="flex items-center gap-2">
+          <div class="w-4 h-4 rounded-full bg-red-500"></div>
+          <div class="w-4 h-4 rounded-full bg-yellow-500"></div>
+          <div class="w-4 h-4 rounded-full bg-green-500"></div>
         </div>
+      </div>
+      <form
+        @submit.prevent="handleSubmit"
+        class="bg-[#2E333F] h-96 max-w-3xl w-full mx-auto font-semibold px-2 pt-2 pb-4 dark:text-white overflow-y-scroll scroll-hidden no-scrollbar"
+      >
+        <p v-for="(log, index) in logs" :key="index">{{ log }}</p>
+        <p v-if="!load" class="flex items-center gap-2">
+          <span>bledash~%</span>
+          <input v-model="terminalInput" class="bg-transparent outline-none w-full" />
+        </p>
+      </form>
     </div>
+  </div>
 </template>
 
-<style>
-html,
-body,
-#app {
-    height: 100%;
-}
-</style>
+<style></style>
