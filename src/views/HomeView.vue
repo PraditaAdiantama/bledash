@@ -127,11 +127,11 @@ async function handleSubmit() {
     logs.value = []
   }
 
-  if (terminalInput.value.trim() == 'showconfig') {
+  if (server.value) {
     // Send "showconfig" command immediately after connection
     const encoder = new TextEncoder()
-    await characteristic.value.writeValue(encoder.encode('showconfig\n'))
-    logs.value.push('Sent command: showconfig')
+    await characteristic.value.writeValue(encoder.encode(terminalInput.value.trim()))
+    logs.value.push('Sent command: ' + terminal.value.trim())
 
     // Enable notifications on response characteristic (if applicable)
     const responseCharacteristic = await service.getCharacteristic(
@@ -151,7 +151,12 @@ async function handleSubmit() {
 </script>
 
 <template>
-  <div class="flex items-center min-h-screen w-full bg-cover" style="background-image: url('https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwallpapercave.com%2Fwp%2Fwp6843223.jpg&f=1&nofb=1&ipt=4290309946c1cc0d58357c5684c6a45e0f4d63d66bf9ff9052770913fd4393c4&ipo=images')">
+  <div
+    class="flex items-center min-h-screen w-full bg-cover"
+    style="
+      background-image: url('https://external-content.duckduckgo.com/iu/?u=https%3A%2F%2Fwallpapercave.com%2Fwp%2Fwp6843223.jpg&f=1&nofb=1&ipt=4290309946c1cc0d58357c5684c6a45e0f4d63d66bf9ff9052770913fd4393c4&ipo=images');
+    "
+  >
     <div class="flex flex-col max-w-3xl w-full mx-auto rounded-xl overflow-hidden">
       <div class="w-full bg-[#39393B] py-2 px-3">
         <div class="flex items-center gap-2">
